@@ -1,0 +1,7 @@
+Flask
+Flask-SQLAlchemy
+Flask-WTF
+docxtpl
+python-docx
+pandas
+openpyxl
