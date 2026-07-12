@@ -1,3 +1,4 @@
+from modules.google_drive import list_templates
 from flask import Flask, render_template, request, send_from_directory
 import os
 
@@ -22,6 +23,14 @@ os.makedirs(GENERATED_FOLDER, exist_ok=True)
 # -----------------------------
 @app.route("/")
 def home():
+    @app.route("/test_drive")
+def test_drive():
+
+    files = list_templates()
+
+    return {
+        "templates": files
+    }
     return render_template("index.html")
 
 
