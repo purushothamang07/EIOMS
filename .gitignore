@@ -38,3 +38,6 @@ database/*.db
 # Windows
 Thumbs.db
 Desktop.ini
+credentials/
+__pycache__/
+*.pyc
