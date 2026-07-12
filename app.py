@@ -3,7 +3,7 @@ from flask import Flask, render_template, request, send_from_directory
 import os
 
 from modules.placeholder_reader import get_placeholders
-from modules.word_generator import generate_word
+from modules.template_generator import generate_template
 
 app = Flask(__name__)
 
@@ -49,7 +49,7 @@ def generate_report():
     templates = []
 
     for file in os.listdir(TEMPLATE_FOLDER):
-        if file.endswith(".docx"):
+       if file.endswith(".docx") or file.endswith(".xlsx"):
             templates.append(file)
 
     templates.sort()
@@ -92,37 +92,39 @@ def generate():
 
     data = {}
 
-    for key in request.form:
+    for key, value in request.form.items():
 
-        value = request.form[key]
+        if key == "template_path":
+            continue
 
-        # Convert HTML date (yyyy-mm-dd) to dd-mm-yyyy
         if "date" in key.lower() and value:
             try:
                 value = datetime.strptime(
                     value,
                     "%Y-%m-%d"
                 ).strftime("%d-%m-%Y")
-            except:
+            except ValueError:
                 pass
 
         data[key] = value
 
     template = request.form["template_path"]
 
-    letter_no = data.get("letter_no")
+    letter_no = data.get("letter_no", "Report")
 
-    if not letter_no:
-        letter_no = "Report"
+    for ch in r'\/:*?"<>|':
+        letter_no = letter_no.replace(ch, "_")
 
-    output_file = f"VLR_{letter_no}.docx"
+    extension = os.path.splitext(template)[1]
+
+    output_file = f"VLR_{letter_no}{extension}"
 
     output_path = os.path.join(
         GENERATED_FOLDER,
         output_file
     )
 
-    generate_word(
+    generate_template(
         template,
         output_path,
         data
@@ -132,7 +134,6 @@ def generate():
         "success.html",
         filename=output_file
     )
-
 # -----------------------------
 # Download Report
 # -----------------------------

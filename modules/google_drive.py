@@ -76,3 +76,21 @@ def delete_template(file_id):
     service.files().delete(
         fileId=file_id
     ).execute()
+    from googleapiclient.http import MediaIoBaseDownload
+
+
+def download_template(file_id, output_path):
+
+    service = get_drive_service()
+
+    request = service.files().get_media(fileId=file_id)
+
+    with open(output_path, "wb") as file:
+
+        downloader = MediaIoBaseDownload(file, request)
+
+        done = False
+
+        while not done:
+
+            status, done = downloader.next_chunk()
