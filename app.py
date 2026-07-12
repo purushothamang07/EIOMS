@@ -32,14 +32,15 @@ def home():
 # -----------------------------
 # Test Google Drive
 # -----------------------------
+from modules.google_drive import test_connection
+
+
 @app.route("/test_drive")
 def test_drive():
 
-    files = list_templates()
+    result = test_connection()
 
-    return {
-        "templates": files
-    }
+    return result
 # -----------------------------
 # Select Template
 # -----------------------------
