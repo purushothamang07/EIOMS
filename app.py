@@ -21,9 +21,18 @@ os.makedirs(GENERATED_FOLDER, exist_ok=True)
 # -----------------------------
 # Home
 # -----------------------------
+# -----------------------------
+# Home
+# -----------------------------
 @app.route("/")
 def home():
-    @app.route("/test_drive")
+    return render_template("index.html")
+
+
+# -----------------------------
+# Test Google Drive
+# -----------------------------
+@app.route("/test_drive")
 def test_drive():
 
     files = list_templates()
@@ -31,9 +40,6 @@ def test_drive():
     return {
         "templates": files
     }
-    return render_template("index.html")
-
-
 # -----------------------------
 # Select Template
 # -----------------------------
