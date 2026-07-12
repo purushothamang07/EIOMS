@@ -1,0 +1,40 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+
+# Virtual Environment
+.venv/
+venv/
+
+# Flask
+instance/
+
+# VS Code
+.vscode/
+
+# Logs
+logs/
+
+# Generated Files
+generated_reports/
+
+# Uploads
+uploads/
+
+# Database
+database/*.db
+
+# Temporary
+*.tmp
+*.bak
+*.log
+
+# Microsoft Office temporary files
+~$*.docx
+~$*.docm
+
+# Windows
+Thumbs.db
+Desktop.ini

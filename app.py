@@ -6,67 +6,98 @@ from modules.word_generator import generate_word
 
 app = Flask(__name__)
 
-UPLOAD_FOLDER = "uploads"
-GENERATED_FOLDER = "generated_reports"
+# -----------------------------
+# Folder Settings
+# -----------------------------
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
-os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+TEMPLATE_FOLDER = os.path.join(BASE_DIR, "word_templates")
+GENERATED_FOLDER = os.path.join(BASE_DIR, "generated_reports")
+
+os.makedirs(TEMPLATE_FOLDER, exist_ok=True)
 os.makedirs(GENERATED_FOLDER, exist_ok=True)
 
-app.config["UPLOAD_FOLDER"] = UPLOAD_FOLDER
-app.config["GENERATED_FOLDER"] = GENERATED_FOLDER
-
-
+# -----------------------------
+# Home
+# -----------------------------
 @app.route("/")
 def home():
     return render_template("index.html")
 
 
-@app.route("/upload")
-def upload_page():
-    return render_template("upload.html")
+# -----------------------------
+# Select Template
+# -----------------------------
+@app.route("/generate_report")
+def generate_report():
 
+    templates = []
 
-@app.route("/upload", methods=["POST"])
-def upload_template():
+    for file in os.listdir(TEMPLATE_FOLDER):
+        if file.endswith(".docx"):
+            templates.append(file)
 
-    file = request.files["template"]
+    templates.sort()
 
-    if file.filename == "":
-        return "No file selected"
-
-    filepath = os.path.join(
-        app.config["UPLOAD_FOLDER"],
-        file.filename
+    return render_template(
+        "select_template.html",
+        templates=templates
     )
 
-    file.save(filepath)
+
+# -----------------------------
+# Read Placeholders
+# -----------------------------
+@app.route("/select_template", methods=["POST"])
+def select_template():
+
+    filename = request.form["template"]
+
+    filepath = os.path.join(TEMPLATE_FOLDER, filename)
 
     placeholders = get_placeholders(filepath)
 
-    app.config["CURRENT_TEMPLATE"] = filepath
-
     return render_template(
         "generate.html",
-        placeholders=placeholders
+        placeholders=placeholders,
+        template_path=filepath
     )
 
 
+# -----------------------------
+# Generate Word Report
+# -----------------------------
 @app.route("/generate", methods=["POST"])
 def generate():
 
-    data = {}
+    from datetime import datetime
 
-    for key in request.form:
-        data[key] = request.form[key]
+data = {}
 
-    template = app.config["CURRENT_TEMPLATE"]
+for key in request.form:
 
-    letter_no = data.get("letter_no", "Report")
+    value = request.form[key]
 
-    output_file = f"VLR {letter_no}.docx"
+    # Convert HTML date (yyyy-mm-dd) to dd-mm-yyyy
+    if "date" in key.lower() and value:
+        try:
+            value = datetime.strptime(value, "%Y-%m-%d").strftime("%d-%m-%Y")
+        except:
+            pass
+
+    data[key] = value
+    
+    template = request.form["template_path"]
+
+    letter_no = data.get("letter_no")
+
+    if not letter_no:
+        letter_no = "Report"
+
+    output_file = f"VLR_{letter_no}.docx"
 
     output_path = os.path.join(
-        app.config["GENERATED_FOLDER"],
+        GENERATED_FOLDER,
         output_file
     )
 
@@ -82,11 +113,14 @@ def generate():
     )
 
 
+# -----------------------------
+# Download Report
+# -----------------------------
 @app.route("/download/<filename>")
 def download(filename):
 
     return send_from_directory(
-        app.config["GENERATED_FOLDER"],
+        GENERATED_FOLDER,
         filename,
         as_attachment=True
     )
