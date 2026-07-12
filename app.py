@@ -67,26 +67,32 @@ def select_template():
 # -----------------------------
 # Generate Word Report
 # -----------------------------
+# -----------------------------
+# Generate Word Report
+# -----------------------------
 @app.route("/generate", methods=["POST"])
 def generate():
 
     from datetime import datetime
 
-data = {}
+    data = {}
 
-for key in request.form:
+    for key in request.form:
 
-    value = request.form[key]
+        value = request.form[key]
 
-    # Convert HTML date (yyyy-mm-dd) to dd-mm-yyyy
-    if "date" in key.lower() and value:
-        try:
-            value = datetime.strptime(value, "%Y-%m-%d").strftime("%d-%m-%Y")
-        except:
-            pass
+        # Convert HTML date (yyyy-mm-dd) to dd-mm-yyyy
+        if "date" in key.lower() and value:
+            try:
+                value = datetime.strptime(
+                    value,
+                    "%Y-%m-%d"
+                ).strftime("%d-%m-%Y")
+            except:
+                pass
 
-    data[key] = value
-    
+        data[key] = value
+
     template = request.form["template_path"]
 
     letter_no = data.get("letter_no")
@@ -111,7 +117,6 @@ for key in request.form:
         "success.html",
         filename=output_file
     )
-
 
 # -----------------------------
 # Download Report
