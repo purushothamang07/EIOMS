@@ -23,17 +23,11 @@ app = Flask(__name__)
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
-TEMPLATE_FOLDER = os.path.join(
-    BASE_DIR,
-    "word_templates"
-)
-
 GENERATED_FOLDER = os.path.join(
     BASE_DIR,
     "generated_reports"
 )
 
-os.makedirs(TEMPLATE_FOLDER, exist_ok=True)
 os.makedirs(GENERATED_FOLDER, exist_ok=True)
 
 
@@ -70,7 +64,7 @@ def generate_report():
 
         templates = list_templates()
 
-        # Only show DOCX and XLSX files
+        # Only show DOCX and XLSX templates
         templates = [
             file for file in templates
             if file.get("name", "").lower().endswith(
@@ -78,7 +72,7 @@ def generate_report():
             )
         ]
 
-        # Sort by template name
+        # Sort templates alphabetically
         templates.sort(
             key=lambda x: x.get("name", "").lower()
         )
@@ -112,21 +106,26 @@ def select_template():
 
     try:
 
-        # Get information about selected Drive file
+        # Get selected Google Drive file information
         template_info = get_template(file_id)
 
         filename = template_info["name"]
 
-        extension = os.path.splitext(filename)[1].lower()
+        extension = os.path.splitext(
+            filename
+        )[1].lower()
 
 
-        # Check supported file types
+        # Check file type
         if extension not in [".docx", ".xlsx"]:
 
             return "Unsupported template type.", 400
 
 
-        # Create temporary file
+        # ------------------------------------------
+        # Download template temporarily
+        # ------------------------------------------
+
         temp_file = tempfile.NamedTemporaryFile(
             delete=False,
             suffix=extension
@@ -137,23 +136,29 @@ def select_template():
         template_path = temp_file.name
 
 
-        # Download selected template from Google Drive
         download_template(
             file_id,
             template_path
         )
 
 
+        # ------------------------------------------
         # Read placeholders
+        # ------------------------------------------
+
         placeholders = get_placeholders(
             template_path
         )
 
 
+        # ------------------------------------------
+        # Show input form
+        # ------------------------------------------
+
         return render_template(
             "generate.html",
             placeholders=placeholders,
-            template_path=template_path,
+            template_id=file_id,
             template_name=filename
         )
 
@@ -184,7 +189,7 @@ def generate():
 
     for key, value in request.form.items():
 
-        if key == "template_path":
+        if key == "template_id":
             continue
 
         if "date" in key.lower() and value:
@@ -205,74 +210,108 @@ def generate():
 
 
     # ----------------------------------------------
-    # Get template path
+    # Get Google Drive template ID
     # ----------------------------------------------
 
-    template = request.form.get(
-        "template_path"
+    file_id = request.form.get(
+        "template_id"
     )
 
-    if not template:
+    if not file_id:
 
-        return "Template path missing.", 400
+        return "Template ID missing.", 400
 
-
-    # ----------------------------------------------
-    # Letter number
-    # ----------------------------------------------
-
-    letter_no = data.get(
-        "letter_no",
-        "Report"
-    )
-
-
-    # Remove invalid filename characters
-    invalid_chars = r'\/:*?"<>|'
-
-    for ch in invalid_chars:
-
-        letter_no = letter_no.replace(
-            ch,
-            "_"
-        )
-
-
-    # ----------------------------------------------
-    # Determine extension
-    # ----------------------------------------------
-
-    extension = os.path.splitext(
-        template
-    )[1].lower()
-
-
-    # ----------------------------------------------
-    # Output filename
-    # ----------------------------------------------
-
-    output_file = (
-        f"VLR_{letter_no}{extension}"
-    )
-
-
-    output_path = os.path.join(
-        GENERATED_FOLDER,
-        output_file
-    )
-
-
-    # ----------------------------------------------
-    # Generate report
-    # ----------------------------------------------
 
     try:
 
+        # ------------------------------------------
+        # Get template information
+        # ------------------------------------------
+
+        template_info = get_template(
+            file_id
+        )
+
+        template_name = template_info["name"]
+
+        extension = os.path.splitext(
+            template_name
+        )[1].lower()
+
+
+        # ------------------------------------------
+        # Create temporary template file
+        # ------------------------------------------
+
+        temp_template = tempfile.NamedTemporaryFile(
+            delete=False,
+            suffix=extension
+        )
+
+        temp_template.close()
+
+        template_path = temp_template.name
+
+
+        # Download template from Google Drive
+        download_template(
+            file_id,
+            template_path
+        )
+
+
+        # ------------------------------------------
+        # Output filename
+        # ------------------------------------------
+
+        letter_no = data.get(
+            "letter_no",
+            "Report"
+        )
+
+
+        # Remove invalid filename characters
+        invalid_chars = r'\/:*?"<>|'
+
+        for ch in invalid_chars:
+
+            letter_no = letter_no.replace(
+                ch,
+                "_"
+            )
+
+
+        output_file = (
+            f"VLR_{letter_no}{extension}"
+        )
+
+
+        output_path = os.path.join(
+            GENERATED_FOLDER,
+            output_file
+        )
+
+
+        # ------------------------------------------
+        # Generate report
+        # ------------------------------------------
+
         generate_template(
-            template,
+            template_path,
             output_path,
             data
         )
+
+
+        # ------------------------------------------
+        # Success page
+        # ------------------------------------------
+
+        return render_template(
+            "success.html",
+            filename=output_file
+        )
+
 
     except Exception as e:
 
@@ -280,16 +319,6 @@ def generate():
         <h2>Report Generation Error</h2>
         <p>{str(e)}</p>
         """, 500
-
-
-    # ----------------------------------------------
-    # Success
-    # ----------------------------------------------
-
-    return render_template(
-        "success.html",
-        filename=output_file
-    )
 
 
 # --------------------------------------------------
